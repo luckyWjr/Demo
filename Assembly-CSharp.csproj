@@ -67,6 +67,9 @@
      <Compile Include="Assets\Excel\ExcelTest.cs" />
      <Compile Include="Assets\Excel\Item.cs" />
      <Compile Include="Assets\Excel\ItemManager.cs" />
+     <Compile Include="Assets\Graphic\Annulus.cs" />
+     <Compile Include="Assets\Graphic\Quadrangle.cs" />
+     <Compile Include="Assets\Graphic\Triangle.cs" />
      <Compile Include="Assets\Gyro\CameraGyro.cs" />
      <Compile Include="Assets\Gyro\GyroBase.cs" />
      <Compile Include="Assets\Gyro\GyroManager.cs" />
