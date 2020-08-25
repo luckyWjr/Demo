@@ -696,6 +696,14 @@
       <Project>{A77DEB61-50BA-3D2B-BA85-CD07C2DB2C66}</Project>
       <Name>Assembly-CSharp</Name>
     </ProjectReference>
+    <ProjectReference Include="SimpleAnimationComponent.csproj">
+      <Project>{AED4E90C-98D6-16C1-2BD5-128FFBCBA21E}</Project>
+      <Name>SimpleAnimationComponent</Name>
+    </ProjectReference>
+    <ProjectReference Include="SimpleAnimationComponent-Editor.csproj">
+      <Project>{6AB5CC6A-90BB-54CA-B659-3BC28D79447D}</Project>
+      <Name>SimpleAnimationComponent-Editor</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

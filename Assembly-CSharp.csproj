@@ -75,6 +75,31 @@
      <Compile Include="Assets\Gyro\GyroManager.cs" />
      <Compile Include="Assets\Gyro\UITest.cs" />
      <Compile Include="Assets\Inspector\Test.cs" />
+     <Compile Include="Assets\ListView\GameObjectPool.cs" />
+     <Compile Include="Assets\ListView\GoodsData.cs" />
+     <Compile Include="Assets\ListView\GoodsItem.cs" />
+     <Compile Include="Assets\ListView\ListView.cs" />
+     <Compile Include="Assets\ListView\ListViewItem.cs" />
+     <Compile Include="Assets\ListView\PanelController.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\AnimationClipConfig.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Graph\AnimationGraphController.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Graph\AudioGraphController.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Graph\BaseGraphController.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Playable\AnimationSimplePlayable.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Playable\AudioSimplePlayable.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\Playable\BasePlayable.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AnimationStateHandle.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AnimationStateInfo.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AnimationStateInfoManager.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AudioStateHandle.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AudioStateInfo.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\AudioStateInfoManager.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\BaseStateHandle.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\BaseStateInfo.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\BaseStateInfoManager.cs" />
+     <Compile Include="Assets\Playable\MyPlayable\State\IState.cs" />
+     <Compile Include="Assets\Playable\PlayableController.cs" />
+     <Compile Include="Assets\Playable\PlayableTest.cs" />
      <Compile Include="Assets\Stencil\ShaderConfig.cs" />
      <Compile Include="Assets\Stencil\StencilMask.cs" />
      <Compile Include="Assets\TimeManager\TimeManager.cs" />
@@ -677,6 +702,16 @@
  <Reference Include="Boo.Lang">
  <HintPath>D:/Unity2019.3.0f6/Editor/Data/MonoBleedingEdge/lib/mono/unityscript/Boo.Lang.dll</HintPath>
  </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="SimpleAnimationComponent.csproj">
+      <Project>{AED4E90C-98D6-16C1-2BD5-128FFBCBA21E}</Project>
+      <Name>SimpleAnimationComponent</Name>
+    </ProjectReference>
+    <ProjectReference Include="SimpleAnimationComponent-Editor.csproj">
+      <Project>{6AB5CC6A-90BB-54CA-B659-3BC28D79447D}</Project>
+      <Name>SimpleAnimationComponent-Editor</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
