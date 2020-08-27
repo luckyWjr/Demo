@@ -5,11 +5,14 @@ using UnityEngine.UI;
 
 public class GoodsItem : ListViewItem
 {
-    public Text m_nameText;
-    public Text m_priceText;
+    [SerializeField] Text m_nameText;
+    [SerializeField] Text m_priceText;
+
+    public GoodsData goodsData { get; private set; }
 
     public void Init(GoodsData data)
     {
+        goodsData = data;
         m_nameText.text = data.name;
         m_priceText.text = data.price.ToString();
     }

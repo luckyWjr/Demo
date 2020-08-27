@@ -9,11 +9,13 @@ public class PanelController : MonoBehaviour
     [SerializeField] GameObject m_goodsItemPrefab;
     [SerializeField] Button m_shenbingButton;
     [SerializeField] Button m_daojuButton;
+    [SerializeField] Text m_amountText;
 
     List<GoodsData> m_shenbingDataList;
     List<GoodsData> m_daojuDataList;
 
     bool isShowShenbingList;
+    int m_amount;
     
     void Start()
     {
@@ -56,13 +58,24 @@ public class PanelController : MonoBehaviour
             new GoodsData("道具22", 12000),
             new GoodsData("道具23", 12000),
             new GoodsData("道具24", 12000),
+            new GoodsData("道具25", 12000),
+            new GoodsData("道具27", 12000),
+            new GoodsData("道具28", 12000),
+            new GoodsData("道具29", 12000),
+            new GoodsData("道具30", 12000),
+            new GoodsData("道具31", 12000),
+            new GoodsData("道具32", 12000),
+            new GoodsData("道具33", 12000),
+            new GoodsData("道具34", 12000),
+            new GoodsData("道具35", 12000),
         };
         
         m_shenbingButton.onClick.AddListener(OnShenbingClicked);
         m_daojuButton.onClick.AddListener(OnDaojuClicked);
 
         isShowShenbingList = true;
-        m_listView.Init(m_goodsItemPrefab, m_shenbingDataList.Count, OnItemRefresh);
+        m_listView.Init(m_goodsItemPrefab, OnItemRefresh, OnItemValueChange, OnItemClick);
+        m_listView.itemCount = m_shenbingDataList.Count;
     }
 
     void OnShenbingClicked()
@@ -81,5 +94,18 @@ public class PanelController : MonoBehaviour
     {
         GoodsItem goodsItem = item as GoodsItem;
         goodsItem.Init(isShowShenbingList ? m_shenbingDataList[index] : m_daojuDataList[index]);
+    }
+
+    void OnItemClick(ListViewItem item)
+    {
+        Debug.Log("OnItemClick");
+    }
+    
+    void OnItemValueChange(ListViewItem item)
+    {
+        Debug.Log("OnItemValueChange:"+item.isSelected);
+        GoodsItem goodsItem = item as GoodsItem;
+        m_amount = m_amount + (item.isSelected ? 1 : -1) * goodsItem.goodsData.price;
+        m_amountText.text = $"总额：{m_amount}";
     }
 }

@@ -4,52 +4,67 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-[RequireComponent(typeof(Toggle))]
+[RequireComponent(typeof(Button))]
 public abstract class ListViewItem : MonoBehaviour
 {
+    [SerializeField] GameObject m_selectedGameObject;
+    
     public int id { get; private set; }
-    Action<ListViewItem, bool> m_onValueChanged;
+    public ListView.ESelectType selectType { get; private set; }
+    Action<ListViewItem> m_onValueChanged;
+    Action<ListViewItem> m_onClicked;//适用于只在Item被单击时做操作的情况
 
-    Toggle m_toggle;
-    public Toggle toggle
+    Button m_button;
+
+    bool m_isSelected;
+    public bool isSelected
     {
-        get
+        get => m_isSelected;
+        set
         {
-            if (m_toggle == null)
-                m_toggle = GetComponent<Toggle>();
-            return m_toggle;
+            if (m_isSelected != value)
+            {
+                m_isSelected = value;
+                m_onValueChanged?.Invoke(this);
+                UpdateSelectedUI();
+            }
         }
-    }
-
-    public bool isOn
-    {
-        set => toggle.isOn = value;
-        get => toggle.isOn;
     }
 
     void Awake()
     {
         id = GetInstanceID();
-        toggle.onValueChanged.AddListener(OnValueChanged);
-    }
-    
-    void OnValueChanged(bool isOn)
-    {
-        m_onValueChanged?.Invoke(this, isOn);
+        m_button = GetComponent<Button>();
+        isSelected = false;
+        m_button.onClick.AddListener(OnClicked);
     }
 
-    public void AddValueChangedHandle(Action<ListViewItem, bool> handle)
+    public void Init(ListView.ESelectType type, Action<ListViewItem> onValueChanged,Action<ListViewItem> onClicked)
     {
-        m_onValueChanged += handle;
+        selectType = type;
+        m_onValueChanged = onValueChanged;
+        m_onClicked = onClicked;
     }
     
-    public void RemoveValueChangedHandle(Action<ListViewItem, bool> handle)
+    void OnClicked()
     {
-        m_onValueChanged -= handle;
+        if (selectType == ListView.ESelectType.Single)
+            isSelected = true;
+        else
+            isSelected = !isSelected;
+        m_onClicked?.Invoke(this);
     }
-    
-    public void ClearValueChangedHandle()
+
+    void ClearSelected()
     {
-        m_onValueChanged = null;
+        isSelected = false;
+    }
+
+    void UpdateSelectedUI()
+    {
+        if (m_selectedGameObject != null)
+        {
+            m_selectedGameObject.SetActive(m_isSelected);
+        }
     }
 }

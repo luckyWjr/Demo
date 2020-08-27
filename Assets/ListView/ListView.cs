@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 [RequireComponent(typeof(GridLayoutGroup))]
+[RequireComponent(typeof(ContentSizeFitter))]
 public class ListView : MonoBehaviour
 {
     public enum ESelectType
@@ -14,7 +15,9 @@ public class ListView : MonoBehaviour
         Multiple
     }
 
-    public Action<int, ListViewItem> onItemRefresh;
+    Action<int, ListViewItem> m_onItemRefresh;
+    Action<ListViewItem> m_onItemValueChanged;
+    Action<ListViewItem> m_onItemClicked;
     
     bool m_isVirtual;
 
@@ -33,26 +36,20 @@ public class ListView : MonoBehaviour
         get => m_itemCount;
         set
         {
-            int count = m_itemList.Count;
-            if (value > count)
+            int oldCount = m_itemList.Count;
+            if (value > oldCount)
             {
-                for (int i = count; i < value; i++)
+                for (int i = oldCount; i < value; i++)
                 {
                     AddItem();
                 }
             }
             else
             {
-                RemoveItem(value, count - 1);
+                RemoveItem(value, oldCount - 1);
             }
 
-            if (onItemRefresh != null)
-            {
-                for (int i = 0; i < value; i++)
-                {
-                    onItemRefresh.Invoke(i, m_itemList[i]);
-                }
-            }
+            Refresh();
         }
     }
 
@@ -70,7 +67,7 @@ public class ListView : MonoBehaviour
         m_selectedItemList = new List<ListViewItem>();
     }
 
-    public void Init(GameObject prefab, int num, Action<int, ListViewItem> action = null)
+    public void Init(GameObject prefab, Action<int, ListViewItem> refresh, Action<ListViewItem> valueChanged, Action<ListViewItem> clicked)
     {
         if (prefab.GetComponent<ListViewItem>() == null)
         {
@@ -80,8 +77,21 @@ public class ListView : MonoBehaviour
 
         itemPrefab = prefab;
         m_pool = new GameObjectPool(m_transform, itemPrefab);
-        onItemRefresh = action;
-        itemCount = num;
+        m_onItemRefresh = refresh;
+        m_onItemValueChanged = valueChanged;
+        m_onItemValueChanged += OnValueChanged;
+        m_onItemClicked = clicked;
+    }
+
+    public void Refresh()
+    {
+        for (int i = 0, count = m_itemList.Count; i < count; i++)
+        {
+            ListViewItem item = m_itemList[i];
+            if (item.isSelected)
+                item.isSelected = false;
+            m_onItemRefresh?.Invoke(i, item);
+        }
     }
     
     public ListViewItem AddItem()
@@ -94,19 +104,15 @@ public class ListView : MonoBehaviour
         go.transform.localScale = Vector3.one;
         ListViewItem item = go.GetComponent<ListViewItem>();
         m_itemList.Add(item);
-        item.AddValueChangedHandle(OnValueChanged);
+        item.Init(selectType, m_onItemValueChanged, m_onItemClicked);
         go.SetActive(true);
         return item;
     }
 
     public void RemoveItem(ListViewItem item)
     {
-        item.ClearValueChangedHandle();
-        if (item.isOn)
-        {
-            item.isOn = false;
-            m_selectedItemList.Remove(item);
-        }
+        if (item.isSelected)
+            item.isSelected = false;
         m_pool.Put(item.gameObject);
         m_itemList.Remove(item);
     }
@@ -124,17 +130,14 @@ public class ListView : MonoBehaviour
             RemoveItem(beginIndex);
     }
     
-    void OnValueChanged(ListViewItem item, bool isOn)
+    void OnValueChanged(ListViewItem item)
     {
-        if (isOn)
+        if (item.isSelected)
         {
             if (selectType == ESelectType.Single)
             {
                 if (m_selectedItemList.Count > 0)
-                {
-                    m_selectedItemList[0].isOn = false;
-                    m_selectedItemList.Clear();
-                }
+                    m_selectedItemList[0].isSelected = false;
                 m_selectedItemList.Add(item);
             }
             else
@@ -151,8 +154,8 @@ public class ListView : MonoBehaviour
 
     void OnDestroy()
     {
-        foreach (var item in m_itemList)
-            item.RemoveValueChangedHandle(OnValueChanged);
+        // foreach (var item in m_itemList)
+            // item.RemoveOnClickedHandle(OnValueChanged);
         m_pool?.Clear();
     }
 }
