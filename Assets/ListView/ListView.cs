@@ -5,8 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-[ExecuteInEditMode]
-[RequireComponent(typeof(GridLayoutGroup))]
+// [ExecuteInEditMode]
 public class ListView : MonoBehaviour
 {
     public enum ESelectType
@@ -14,26 +13,33 @@ public class ListView : MonoBehaviour
         Single,
         Multiple
     }
-
+    
+    public enum EFlowType
+    {
+        Horizontal,
+        Vertical,
+    }
+    
+    [SerializeField] bool m_isVirtual;
+    [SerializeField] ESelectType m_selectType;
+    [SerializeField] EFlowType m_flowType;
+    [SerializeField] int m_constraintCount;
+    [SerializeField] Vector2 m_itemSpace;
+    
+    public GameObject itemPrefab { get; set; }
+    
     Action<int, ListViewItem> m_onItemRefresh;
     Action<ListViewItem> m_onItemValueChanged;
     Action<ListViewItem> m_onItemClicked;
     
-    bool m_isVirtual;
-    bool m_isHorizontal;
     int m_rowCount, m_columnCount;
     Vector2 m_initialSize;
-    Vector2 m_padding;
     Vector2 m_itemSize;
-
-    public ESelectType selectType;
     
     RectTransform m_rectTransform;
-    GridLayoutGroup m_gridLayoutGroup;
     ScrollRect m_scrollRect;
     GameObjectPool m_pool;
 
-    public GameObject itemPrefab { get; set; }
     int m_itemCount;
     float m_scrollStep;
     bool m_isBoundsDirty = false;
@@ -68,15 +74,16 @@ public class ListView : MonoBehaviour
     void Awake()
     {
         m_rectTransform = GetComponent<RectTransform>();
-        m_gridLayoutGroup = GetComponent<GridLayoutGroup>();
+        m_rectTransform.pivot = Vector2.up;
+        m_rectTransform.anchorMax = Vector2.up;
+        m_rectTransform.anchorMin = Vector2.up;
         
         m_itemList = new List<ListViewItem>();
         m_selectedItemList = new List<ListViewItem>();
         m_scrollRect = m_rectTransform.GetComponentInParent<ScrollRect>();
         if(m_scrollRect == null)
             Debug.LogError("ListView can not find ScrollRect");
-
-        GetLayoutAttribute();
+        m_scrollRect.onValueChanged.AddListener(OnScroll);
     }
 
     void Update()
@@ -99,6 +106,8 @@ public class ListView : MonoBehaviour
         m_onItemValueChanged = valueChanged;
         m_onItemValueChanged += OnValueChanged;
         m_onItemClicked = clicked;
+        
+        GetLayoutAttribute();
     }
 
     public void Refresh()
@@ -122,7 +131,7 @@ public class ListView : MonoBehaviour
         go.transform.localScale = Vector3.one;
         ListViewItem item = go.GetComponent<ListViewItem>();
         m_itemList.Add(item);
-        item.Init(selectType, m_onItemValueChanged, m_onItemClicked);
+        item.Init(m_selectType, m_onItemValueChanged, m_onItemClicked);
         go.SetActive(true);
         SetBoundsDirty();
         return item;
@@ -157,48 +166,110 @@ public class ListView : MonoBehaviour
 
     void UpdateBounds()
     {
-        if (m_isHorizontal)
+        if (m_flowType == EFlowType.Horizontal)
         {
-            m_columnCount = Mathf.CeilToInt((float)itemCount / m_rowCount);
-            m_rectTransform.sizeDelta = new Vector2(m_itemSize.x * m_columnCount, m_rectTransform.sizeDelta.y);
+            m_rectTransform.sizeDelta = new Vector2(GetContentLength(), m_initialSize.y);
+            for (int i = 0, count = itemCount; i < count; i++)
+            {
+                int row = i % m_rowCount;
+                int column = i / m_rowCount;
+
+                float x = column * (m_itemSize.x + m_itemSpace.x) + m_itemSize.x / 2;
+                float y = row * (m_itemSize.y + m_itemSpace.y) + m_itemSize.y / 2;
+
+                m_itemList[i].transform.localPosition = new Vector2(x, -y);
+            }
         }
         else
         {
-            m_rowCount = Mathf.CeilToInt((float)itemCount / m_columnCount);
-            m_rectTransform.sizeDelta = new Vector2(m_rectTransform.sizeDelta.x, m_itemSize.y * m_rowCount);
+            m_rectTransform.sizeDelta = new Vector2(m_initialSize.x, GetContentLength());
+            for (int i = 0, count = itemCount; i < count; i++)
+            {
+                int row = i / m_columnCount;
+                int column = i % m_columnCount;
+
+                float x = column * (m_itemSize.x + m_itemSpace.x) + m_itemSize.x / 2;
+                float y = row * (m_itemSize.y + m_itemSpace.y) + m_itemSize.y / 2;
+
+                m_itemList[i].transform.localPosition = new Vector2(x, -y);
+            }
         }
         
         m_isBoundsDirty = false;
     }
 
-    void GetLayoutAttribute()
+    float GetContentLength()
     {
-        m_initialSize = m_rectTransform.rect.size;
-        m_padding = new Vector2(m_gridLayoutGroup.padding.left + m_gridLayoutGroup.padding.right, m_gridLayoutGroup.padding.top + m_gridLayoutGroup.padding.bottom);
-        m_itemSize = m_gridLayoutGroup.cellSize + m_gridLayoutGroup.spacing;
-        
-        if (m_gridLayoutGroup.constraint == GridLayoutGroup.Constraint.FixedColumnCount)
+        if (m_flowType == EFlowType.Horizontal)
         {
-            m_isHorizontal = false;
-            m_columnCount = m_gridLayoutGroup.constraintCount;
-        }
-        else if(m_gridLayoutGroup.constraint == GridLayoutGroup.Constraint.FixedRowCount)
-        {
-            m_isHorizontal = true;
-            m_rowCount = m_gridLayoutGroup.constraintCount;
+            int columnCount = Mathf.CeilToInt((float)itemCount / m_rowCount);
+            return m_itemSize.x * columnCount + m_itemSpace.x * (columnCount - 1);
         }
         else
         {
-            if (m_gridLayoutGroup.startAxis == GridLayoutGroup.Axis.Horizontal)
-            {
-                m_isHorizontal = false;
-                m_columnCount = Mathf.FloorToInt((m_initialSize.x - m_padding.x) / m_itemSize.x);
-            }
-            else
-            {
-                m_isHorizontal = true;
-                m_rowCount = Mathf.FloorToInt((m_initialSize.y - m_padding.y) / m_itemSize.y);
-            }
+            int rowCount = Mathf.CeilToInt((float)itemCount / m_columnCount);
+            return m_itemSize.y * rowCount + m_itemSpace.y * (rowCount - 1);
+        }
+    }
+
+    void OnScroll(Vector2 position)
+    {
+        Debug.Log("pos:"+m_rectTransform.localPosition);
+        if (m_flowType == EFlowType.Horizontal)
+        {
+            ScrollHorizontal();
+        }
+        else
+        {
+            ScrollVertical();
+        }
+    }
+
+    void ScrollVertical()
+    {
+        int startIndex = GetCurrentIndex(m_rectTransform.localPosition.y);
+    }
+    
+    void ScrollHorizontal()
+    {
+        int startIndex = GetCurrentIndex(m_rectTransform.localPosition.x);
+    }
+
+    //当前页面显示的item中，第一个item的下标
+    int GetCurrentIndex(float position)
+    {
+        return Mathf.FloorToInt(position / (m_flowType == EFlowType.Horizontal ? m_itemSize.x : m_itemSize.y)) * (m_flowType == EFlowType.Horizontal ? m_columnCount : m_rowCount);
+    }
+
+    public void SetVirtual()
+    {
+        if (!m_isVirtual)
+        {
+            
+            m_isVirtual = true;
+        }
+    }
+
+    void GetLayoutAttribute()
+    {
+        m_itemSize = itemPrefab.GetComponent<RectTransform>().rect.size;
+        m_initialSize = m_rectTransform.rect.size;
+
+        if (m_flowType == EFlowType.Horizontal)
+        {
+            m_rowCount = m_constraintCount;
+            if (m_rowCount == 0)
+                m_rowCount = Mathf.FloorToInt((m_initialSize.y + m_itemSpace.y) / (m_itemSize.y + m_itemSpace.y));
+            if (m_rowCount == 0)
+                m_rowCount = 1;
+        }
+        else
+        {
+            m_columnCount = m_constraintCount;
+            if (m_columnCount == 0)
+                m_columnCount = Mathf.FloorToInt((m_initialSize.x + m_itemSpace.x) / (m_itemSize.x + m_itemSpace.x));
+            if (m_columnCount == 0)
+                m_columnCount = 1;
         }
     }
     
@@ -206,7 +277,7 @@ public class ListView : MonoBehaviour
     {
         if (item.isSelected)
         {
-            if (selectType == ESelectType.Single)
+            if (m_selectType == ESelectType.Single)
             {
                 if (m_selectedItemList.Count > 0)
                     m_selectedItemList[0].isSelected = false;
@@ -217,7 +288,7 @@ public class ListView : MonoBehaviour
         }
         else
         {
-            if (selectType == ESelectType.Single)
+            if (m_selectType == ESelectType.Single)
                 m_selectedItemList.Clear();
             else
                 m_selectedItemList.Remove(item);
