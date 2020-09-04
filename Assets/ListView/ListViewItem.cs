@@ -45,7 +45,7 @@ public abstract class ListViewItem : MonoBehaviour
         m_rectTransform.anchorMax = Vector2.up;
     }
 
-    public void Init(ListView.ESelectType type, Action<ListViewItem> onValueChanged,Action<ListViewItem> onClicked)
+    public void Init(ListView.ESelectType type, Action<ListViewItem> onValueChanged, Action<ListViewItem> onClicked)
     {
         selectType = type;
         m_onValueChanged = onValueChanged;
@@ -66,7 +66,7 @@ public abstract class ListViewItem : MonoBehaviour
         isSelected = false;
     }
 
-    void UpdateSelectedUI()
+    protected virtual void UpdateSelectedUI()
     {
         if (m_selectedGameObject != null)
         {

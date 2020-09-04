@@ -30,10 +30,6 @@ public class PanelController : MonoBehaviour
         
         m_daojuDataList = new List<GoodsData>
         {
-            new GoodsData("皇凤血", 2000),
-            new GoodsData("陨焰之石", 3000),
-            new GoodsData("缘材进", 5000),
-            new GoodsData("灵玉", 10000),
             new GoodsData("道具1", 12000),
             new GoodsData("道具2", 12000),
             new GoodsData("道具3", 12000),
@@ -68,6 +64,10 @@ public class PanelController : MonoBehaviour
             new GoodsData("道具33", 12000),
             new GoodsData("道具34", 12000),
             new GoodsData("道具35", 12000),
+            new GoodsData("道具36", 12000),
+            new GoodsData("道具37", 12000),
+            new GoodsData("道具38", 12000),
+            new GoodsData("道具39", 12000),
         };
         
         m_shenbingButton.onClick.AddListener(OnShenbingClicked);
@@ -92,6 +92,7 @@ public class PanelController : MonoBehaviour
     
     void OnItemRefresh(int index, ListViewItem item)
     {
+        Debug.Log("OnItemRefresh:"+index);
         GoodsItem goodsItem = item as GoodsItem;
         goodsItem.Init(isShowShenbingList ? m_shenbingDataList[index] : m_daojuDataList[index]);
     }

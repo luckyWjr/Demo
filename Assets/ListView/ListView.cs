@@ -20,6 +20,12 @@ public class ListView : MonoBehaviour
         Vertical,
     }
     
+    class ItemInfo
+    {
+        public ListViewItem item;
+        public bool isSelected;
+    }
+    
     [SerializeField] bool m_isVirtual;
     [SerializeField] ESelectType m_selectType;
     [SerializeField] EFlowType m_flowType;
@@ -40,29 +46,57 @@ public class ListView : MonoBehaviour
     ScrollRect m_scrollRect;
     GameObjectPool m_pool;
 
-    int m_itemCount;
+    List<ItemInfo> m_itemInfoList;
+
     float m_scrollStep;
     bool m_isBoundsDirty = false;
 
+    int m_itemRealCount;
     public int itemCount
     {
-        get => m_itemList.Count;
+        get => m_isVirtual ? m_itemRealCount : m_itemList.Count;
         set
         {
-            int oldCount = m_itemList.Count;
-            if (value > oldCount)
+            ResetPosition();
+            if (m_isVirtual)
             {
-                for (int i = oldCount; i < value; i++)
+                m_itemRealCount = value;
+                SetSize();
+                int oldCount = m_itemInfoList.Count;
+                if (m_itemRealCount > oldCount)
                 {
-                    AddItem();
+                    for (int i = oldCount; i < m_itemRealCount; i++)
+                    {
+                        ItemInfo info = new ItemInfo();
+                        m_itemInfoList.Add(info);
+                    }
                 }
+                else
+                {
+                    for (int i = m_itemRealCount; i < oldCount; i++)
+                    {
+                        if (m_itemInfoList[i].item != null)
+                        {
+                            RemoveItem(m_itemInfoList[i].item);
+                            m_itemInfoList[i].item = null;
+                        }
+                    }
+                }
+                RenderVirtualItem(true);
             }
             else
             {
-                RemoveItem(value, oldCount - 1);
-            }
+                int oldCount = m_itemList.Count;
+                if (value > oldCount)
+                {
+                    for (int i = oldCount; i < value; i++)
+                        AddItem();
+                }
+                else
+                    RemoveItem(value, oldCount - 1);
 
-            Refresh();
+                Refresh();
+            }
         }
     }
 
@@ -80,6 +114,7 @@ public class ListView : MonoBehaviour
         
         m_itemList = new List<ListViewItem>();
         m_selectedItemList = new List<ListViewItem>();
+        m_itemInfoList = new List<ItemInfo>();
         m_scrollRect = m_rectTransform.GetComponentInParent<ScrollRect>();
         if(m_scrollRect == null)
             Debug.LogError("ListView can not find ScrollRect");
@@ -127,7 +162,6 @@ public class ListView : MonoBehaviour
 
         GameObject go = m_pool.Get();
         go.transform.SetParent(m_rectTransform);
-        go.transform.localPosition = Vector3.zero;
         go.transform.localScale = Vector3.one;
         ListViewItem item = go.GetComponent<ListViewItem>();
         m_itemList.Add(item);
@@ -166,38 +200,47 @@ public class ListView : MonoBehaviour
 
     void UpdateBounds()
     {
-        if (m_flowType == EFlowType.Horizontal)
+        if(m_isVirtual)
+            return;
+        SetSize();
+        for (int i = 0, count = itemCount; i < count; i++)
         {
-            m_rectTransform.sizeDelta = new Vector2(GetContentLength(), m_initialSize.y);
-            for (int i = 0, count = itemCount; i < count; i++)
-            {
-                int row = i % m_rowCount;
-                int column = i / m_rowCount;
-
-                float x = column * (m_itemSize.x + m_itemSpace.x) + m_itemSize.x / 2;
-                float y = row * (m_itemSize.y + m_itemSpace.y) + m_itemSize.y / 2;
-
-                m_itemList[i].transform.localPosition = new Vector2(x, -y);
-            }
-        }
-        else
-        {
-            m_rectTransform.sizeDelta = new Vector2(m_initialSize.x, GetContentLength());
-            for (int i = 0, count = itemCount; i < count; i++)
-            {
-                int row = i / m_columnCount;
-                int column = i % m_columnCount;
-
-                float x = column * (m_itemSize.x + m_itemSpace.x) + m_itemSize.x / 2;
-                float y = row * (m_itemSize.y + m_itemSpace.y) + m_itemSize.y / 2;
-
-                m_itemList[i].transform.localPosition = new Vector2(x, -y);
-            }
+            m_itemList[i].transform.localPosition = CalculatePosition(i);
         }
         
         m_isBoundsDirty = false;
     }
 
+    void SetSize()
+    {
+        m_rectTransform.sizeDelta = m_flowType == EFlowType.Horizontal ? new Vector2(GetContentLength(), m_initialSize.y) : new Vector2(m_initialSize.x, GetContentLength());
+    }
+
+    void ResetPosition()
+    {
+        m_rectTransform.localPosition = Vector3.zero;
+    }
+    
+    Vector2 CalculatePosition(int index)
+    {
+        int row, column;
+        if (m_flowType == EFlowType.Horizontal)
+        {
+            row = index % m_rowCount;
+            column = index / m_rowCount;
+        }
+        else
+        {
+            row = index / m_columnCount;
+            column = index % m_columnCount;
+        }
+        
+        float x = column * (m_itemSize.x + m_itemSpace.x) + m_itemSize.x / 2;
+        float y = row * (m_itemSize.y + m_itemSpace.y) + m_itemSize.y / 2;
+        
+        return new Vector2(x, -y);
+    }
+    
     float GetContentLength()
     {
         if (m_flowType == EFlowType.Horizontal)
@@ -214,23 +257,82 @@ public class ListView : MonoBehaviour
 
     void OnScroll(Vector2 position)
     {
-        Debug.Log("pos:"+m_rectTransform.localPosition);
+        RenderVirtualItem(false);
+    }
+
+    void RenderVirtualItem(bool isForceRender)
+    {
         if (m_flowType == EFlowType.Horizontal)
         {
-            ScrollHorizontal();
+            ScrollHorizontal(isForceRender);
         }
         else
         {
-            ScrollVertical();
+            ScrollVertical(isForceRender);
         }
     }
 
-    void ScrollVertical()
+    void ScrollVertical(bool isForceRender)
     {
-        int startIndex = GetCurrentIndex(m_rectTransform.localPosition.y);
+        float currentY = m_rectTransform.localPosition.y;
+        // Debug.Log("currentY:"+currentY);
+        int startIndex = GetCurrentIndex(currentY);
+        // Debug.Log("startIndex:"+startIndex);
+        float endY = -currentY - m_initialSize.y - m_itemSize.y - m_itemSpace.y;
+        // Debug.Log("endY:"+endY);
+        int endIndex = GetCurrentIndex(-endY);
+        // Debug.Log("endIndex:"+endIndex);
+        for (int i = startIndex; i < itemCount && i < endIndex; i++)
+        {
+            bool needRender = false;
+            // if(CalculatePosition(i).y < endY)
+            //     break;
+            ItemInfo info = m_itemInfoList[i];
+
+            //scroll down
+            if (info.item == null)
+            {
+                for (int j = 0; j < startIndex; j++)
+                {
+                    if (m_itemInfoList[j].item != null)
+                    {
+                        info.item = m_itemInfoList[j].item;
+                        m_itemInfoList[j].item = null;
+                        needRender = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (info.item == null)
+            {
+                for (int j = endIndex; j < itemCount; j++)
+                {
+                    if (m_itemInfoList[j].item != null)
+                    {
+                        info.item = m_itemInfoList[j].item;
+                        m_itemInfoList[j].item = null;
+                        needRender = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (info.item == null)
+            {
+                info.item = AddItem();
+                needRender = true;
+            }
+
+            if (isForceRender || needRender)
+            {
+                info.item.transform.localPosition = CalculatePosition(i);
+                m_onItemRefresh?.Invoke(i, info.item);
+            }
+        }
     }
     
-    void ScrollHorizontal()
+    void ScrollHorizontal(bool isForceRender)
     {
         int startIndex = GetCurrentIndex(m_rectTransform.localPosition.x);
     }
@@ -238,14 +340,26 @@ public class ListView : MonoBehaviour
     //当前页面显示的item中，第一个item的下标
     int GetCurrentIndex(float position)
     {
-        return Mathf.FloorToInt(position / (m_flowType == EFlowType.Horizontal ? m_itemSize.x : m_itemSize.y)) * (m_flowType == EFlowType.Horizontal ? m_columnCount : m_rowCount);
+        if (m_flowType == EFlowType.Horizontal)
+        {
+            position = -position;
+            if (position < m_itemSize.x) return 0;
+            position -= m_itemSize.x;
+            return (Mathf.FloorToInt(position / (m_itemSize.x + m_itemSpace.x)) + 1) * m_rowCount;
+        }
+        else
+        {
+            if (position < m_itemSize.y) return 0;
+            position -= m_itemSize.y;
+            return (Mathf.FloorToInt(position / (m_itemSize.y + m_itemSpace.y)) + 1) * m_columnCount;
+        }
     }
 
     public void SetVirtual()
     {
         if (!m_isVirtual)
         {
-            
+            m_itemInfoList.Clear();
             m_isVirtual = true;
         }
     }
@@ -253,7 +367,7 @@ public class ListView : MonoBehaviour
     void GetLayoutAttribute()
     {
         m_itemSize = itemPrefab.GetComponent<RectTransform>().rect.size;
-        m_initialSize = m_rectTransform.rect.size;
+        m_initialSize = m_rectTransform.parent.GetComponent<RectTransform>().rect.size;//Viewport Size
 
         if (m_flowType == EFlowType.Horizontal)
         {
@@ -300,5 +414,9 @@ public class ListView : MonoBehaviour
         // foreach (var item in m_itemList)
             // item.RemoveOnClickedHandle(OnValueChanged);
         m_pool?.Clear();
+        
+        m_itemList.Clear();
+        m_selectedItemList.Clear();
+        m_itemInfoList.Clear();
     }
 }

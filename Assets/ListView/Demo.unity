@@ -1558,7 +1558,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e53244f4e016e6408844a4b0a853fb1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_isVirtual: 0
+  m_isVirtual: 1
   m_selectType: 0
   m_flowType: 1
   m_constraintCount: 0
