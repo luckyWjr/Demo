@@ -15,10 +15,10 @@ public abstract class ListViewItem : MonoBehaviour
     Action<ListViewItem> m_onClicked;//适用于只在Item被单击时做操作的情况
 
     RectTransform m_rectTransform;
-
     Button m_button;
 
     bool m_isSelected;
+
     public bool isSelected
     {
         get => m_isSelected;
@@ -27,7 +27,6 @@ public abstract class ListViewItem : MonoBehaviour
             if (m_isSelected != value)
             {
                 m_isSelected = value;
-                m_onValueChanged?.Invoke(this);
                 UpdateSelectedUI();
             }
         }
@@ -54,10 +53,20 @@ public abstract class ListViewItem : MonoBehaviour
     
     void OnClicked()
     {
+        bool isValueChange = false;
         if (selectType == ListView.ESelectType.Single)
+        {
+            if (!isSelected)
+                isValueChange = true;
             isSelected = true;
+        }
         else
+        {
+            isValueChange = true;
             isSelected = !isSelected;
+        }
+        if(isValueChange)
+            m_onValueChanged?.Invoke(this);
         m_onClicked?.Invoke(this);
     }
 
@@ -70,7 +79,7 @@ public abstract class ListViewItem : MonoBehaviour
     {
         if (m_selectedGameObject != null)
         {
-            m_selectedGameObject.SetActive(m_isSelected);
+            m_selectedGameObject.SetActive(isSelected);
         }
     }
 }

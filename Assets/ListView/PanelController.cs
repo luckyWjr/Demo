@@ -30,6 +30,7 @@ public class PanelController : MonoBehaviour
         
         m_daojuDataList = new List<GoodsData>
         {
+            new GoodsData("道具0", 12000),
             new GoodsData("道具1", 12000),
             new GoodsData("道具2", 12000),
             new GoodsData("道具3", 12000),
@@ -55,6 +56,7 @@ public class PanelController : MonoBehaviour
             new GoodsData("道具23", 12000),
             new GoodsData("道具24", 12000),
             new GoodsData("道具25", 12000),
+            new GoodsData("道具26", 12000),
             new GoodsData("道具27", 12000),
             new GoodsData("道具28", 12000),
             new GoodsData("道具29", 12000),
@@ -92,21 +94,21 @@ public class PanelController : MonoBehaviour
     
     void OnItemRefresh(int index, ListViewItem item)
     {
-        Debug.Log("OnItemRefresh:"+index);
+        // Debug.Log("OnItemRefresh:"+index);
         GoodsItem goodsItem = item as GoodsItem;
         goodsItem.Init(isShowShenbingList ? m_shenbingDataList[index] : m_daojuDataList[index]);
     }
 
     void OnItemClick(ListViewItem item)
     {
-        Debug.Log("OnItemClick");
+        // Debug.Log("OnItemClick");
     }
     
-    void OnItemValueChange(ListViewItem item)
+    void OnItemValueChange(int index, bool isSelected)
     {
-        Debug.Log("OnItemValueChange:"+item.isSelected);
-        GoodsItem goodsItem = item as GoodsItem;
-        m_amount = m_amount + (item.isSelected ? 1 : -1) * goodsItem.goodsData.price;
-        m_amountText.text = $"总额：{m_amount}";
+        Debug.Log($"OnItemValueChange:{index}  {isSelected}");
+        // GoodsItem goodsItem = item as GoodsItem;
+        // m_amount = m_amount + (item.isSelected ? 1 : -1) * goodsItem.goodsData.price;
+        // m_amountText.text = $"总额：{m_amount}";
     }
 }

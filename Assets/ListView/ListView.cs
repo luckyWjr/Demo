@@ -35,7 +35,7 @@ public class ListView : MonoBehaviour
     public GameObject itemPrefab { get; set; }
     
     Action<int, ListViewItem> m_onItemRefresh;
-    Action<ListViewItem> m_onItemValueChanged;
+    Action<int, bool> m_onItemValueChanged;
     Action<ListViewItem> m_onItemClicked;
     
     int m_rowCount, m_columnCount;
@@ -50,6 +50,8 @@ public class ListView : MonoBehaviour
 
     float m_scrollStep;
     bool m_isBoundsDirty = false;
+
+    int m_startIndex;//虚拟列表，视图中左上角item的下标
 
     int m_itemRealCount;
     public int itemCount
@@ -79,6 +81,7 @@ public class ListView : MonoBehaviour
                         {
                             RemoveItem(m_itemInfoList[i].item);
                             m_itemInfoList[i].item = null;
+                            m_itemInfoList[i].isSelected = false;
                         }
                     }
                 }
@@ -127,7 +130,7 @@ public class ListView : MonoBehaviour
             UpdateBounds();
     }
 
-    public void Init(GameObject prefab, Action<int, ListViewItem> refresh, Action<ListViewItem> valueChanged, Action<ListViewItem> clicked)
+    public void Init(GameObject prefab, Action<int, ListViewItem> refresh, Action<int, bool> valueChanged, Action<ListViewItem> clicked)
     {
         if (prefab.GetComponent<ListViewItem>() == null)
         {
@@ -139,7 +142,6 @@ public class ListView : MonoBehaviour
         m_pool = new GameObjectPool(m_rectTransform, itemPrefab);
         m_onItemRefresh = refresh;
         m_onItemValueChanged = valueChanged;
-        m_onItemValueChanged += OnValueChanged;
         m_onItemClicked = clicked;
         
         GetLayoutAttribute();
@@ -165,7 +167,7 @@ public class ListView : MonoBehaviour
         go.transform.localScale = Vector3.one;
         ListViewItem item = go.GetComponent<ListViewItem>();
         m_itemList.Add(item);
-        item.Init(m_selectType, m_onItemValueChanged, m_onItemClicked);
+        item.Init(m_selectType, OnValueChanged, m_onItemClicked);
         go.SetActive(true);
         SetBoundsDirty();
         return item;
@@ -276,13 +278,13 @@ public class ListView : MonoBehaviour
     {
         float currentY = m_rectTransform.localPosition.y;
         // Debug.Log("currentY:"+currentY);
-        int startIndex = GetCurrentIndex(currentY);
+        m_startIndex = GetCurrentIndex(currentY);
         // Debug.Log("startIndex:"+startIndex);
         float endY = -currentY - m_initialSize.y - m_itemSize.y - m_itemSpace.y;
         // Debug.Log("endY:"+endY);
         int endIndex = GetCurrentIndex(-endY);
         // Debug.Log("endIndex:"+endIndex);
-        for (int i = startIndex; i < itemCount && i < endIndex; i++)
+        for (int i = m_startIndex; i < itemCount && i < endIndex; i++)
         {
             bool needRender = false;
             // if(CalculatePosition(i).y < endY)
@@ -292,7 +294,7 @@ public class ListView : MonoBehaviour
             //scroll down
             if (info.item == null)
             {
-                for (int j = 0; j < startIndex; j++)
+                for (int j = 0; j < m_startIndex; j++)
                 {
                     if (m_itemInfoList[j].item != null)
                     {
@@ -327,6 +329,7 @@ public class ListView : MonoBehaviour
             if (isForceRender || needRender)
             {
                 info.item.transform.localPosition = CalculatePosition(i);
+                info.item.isSelected = info.isSelected;
                 m_onItemRefresh?.Invoke(i, info.item);
             }
         }
@@ -389,23 +392,78 @@ public class ListView : MonoBehaviour
     
     void OnValueChanged(ListViewItem item)
     {
-        if (item.isSelected)
+        if (m_isVirtual)
         {
-            if (m_selectType == ESelectType.Single)
+            if (item.isSelected)
             {
-                if (m_selectedItemList.Count > 0)
-                    m_selectedItemList[0].isSelected = false;
-                m_selectedItemList.Add(item);
+                if (m_selectType == ESelectType.Single)
+                {
+                    for (int i = 0; i < itemCount; i++)
+                    {
+                        if (m_itemInfoList[i].item == item)
+                        {
+                            m_itemInfoList[i].isSelected = true;
+                            m_onItemValueChanged?.Invoke(i, true);
+                            continue;
+                        }
+                        if (m_itemInfoList[i].isSelected)
+                        {
+                            m_itemInfoList[i].isSelected = false;
+                            if(m_itemInfoList[i].item != null)
+                                m_itemInfoList[i].item.isSelected = false;
+                            m_onItemValueChanged?.Invoke(i, false);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = m_startIndex; i < itemCount; i++)
+                    {
+                        if (m_itemInfoList[i].item == item)
+                        {
+                            m_itemInfoList[i].isSelected = false;
+                            m_onItemValueChanged?.Invoke(i, false);
+                            break;
+                        }
+                    }
+                }
             }
             else
-                m_selectedItemList.Add(item);
+            {
+                for (int i = m_startIndex; i < itemCount; i++)
+                {
+                    if (m_itemInfoList[i].item == item)
+                    {
+                        m_onItemValueChanged?.Invoke(i, true);
+                        break;
+                    }
+                }
+            }
         }
         else
         {
-            if (m_selectType == ESelectType.Single)
-                m_selectedItemList.Clear();
+            if (item.isSelected)
+            {
+                if (m_selectType == ESelectType.Single)
+                {
+                    if (m_selectedItemList.Count > 0)
+                    {
+                        m_selectedItemList[0].isSelected = false;
+                        int lastSelectedIndex = m_selectedItemList.IndexOf(m_selectedItemList[0]);
+                        m_onItemValueChanged?.Invoke(lastSelectedIndex, false);
+                        m_selectedItemList.Clear();
+                    }
+                    m_selectedItemList.Add(item);
+                }
+                else
+                    m_selectedItemList.Add(item);
+            }
             else
+            {
                 m_selectedItemList.Remove(item);
+            }
+            int index = m_selectedItemList.IndexOf(item);
+            m_onItemValueChanged?.Invoke(index, item.isSelected);
         }
     }
 
