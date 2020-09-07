@@ -9,10 +9,13 @@ public class PanelController : MonoBehaviour
     [SerializeField] GameObject m_goodsItemPrefab;
     [SerializeField] Button m_shenbingButton;
     [SerializeField] Button m_daojuButton;
+    [SerializeField] Button m_addButton;
+    [SerializeField] Button m_deleteButton;
     [SerializeField] Text m_amountText;
 
     List<GoodsData> m_shenbingDataList;
     List<GoodsData> m_daojuDataList;
+    List<GoodsData> currentList => isShowShenbingList ? m_shenbingDataList : m_daojuDataList;
 
     bool isShowShenbingList;
     int m_amount;
@@ -74,6 +77,8 @@ public class PanelController : MonoBehaviour
         
         m_shenbingButton.onClick.AddListener(OnShenbingClicked);
         m_daojuButton.onClick.AddListener(OnDaojuClicked);
+        m_addButton.onClick.AddListener(OnAddClicked);
+        m_deleteButton.onClick.AddListener(OnDeleteClicked);
 
         isShowShenbingList = true;
         m_listView.Init(m_goodsItemPrefab, OnItemRefresh, OnItemValueChange, OnItemClick);
@@ -91,12 +96,39 @@ public class PanelController : MonoBehaviour
         isShowShenbingList = false;
         m_listView.itemCount = m_daojuDataList.Count;
     }
+
+    void OnAddClicked()
+    {
+        if (m_listView.isVirtual)
+        {
+            currentList.Add(new GoodsData("新增物品", 555));
+            m_listView.itemCount = currentList.Count;
+        }
+        else
+        {
+            currentList.Add(new GoodsData("新增物品", 555));
+            OnItemRefresh(currentList.Count - 1, m_listView.AddItem());
+        }
+    }
+    
+    void OnDeleteClicked()
+    {
+        if (m_listView.isVirtual)
+        {
+            currentList.RemoveAt(currentList.Count - 1);
+            m_listView.itemCount = currentList.Count;
+        }
+        else
+        {
+            m_listView.RemoveItem(m_listView.itemCount - 1);
+        }
+    }
     
     void OnItemRefresh(int index, ListViewItem item)
     {
-        // Debug.Log("OnItemRefresh:"+index);
+        Debug.Log("OnItemRefresh:"+index);
         GoodsItem goodsItem = item as GoodsItem;
-        goodsItem.Init(isShowShenbingList ? m_shenbingDataList[index] : m_daojuDataList[index]);
+        goodsItem.Init(currentList[index]);
     }
 
     void OnItemClick(ListViewItem item)
@@ -106,9 +138,9 @@ public class PanelController : MonoBehaviour
     
     void OnItemValueChange(int index, bool isSelected)
     {
-        Debug.Log($"OnItemValueChange:{index}  {isSelected}");
-        // GoodsItem goodsItem = item as GoodsItem;
-        // m_amount = m_amount + (item.isSelected ? 1 : -1) * goodsItem.goodsData.price;
-        // m_amountText.text = $"总额：{m_amount}";
+        // Debug.Log($"OnItemValueChange:{index}  {isSelected}");
+        GoodsData data = currentList[index];
+        m_amount = m_amount + (isSelected ? 1 : -1) * data.price;
+        m_amountText.text = $"总额：{m_amount}";
     }
 }

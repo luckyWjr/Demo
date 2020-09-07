@@ -33,6 +33,7 @@ public class ListView : MonoBehaviour
     [SerializeField] Vector2 m_itemSpace;//item间距
     
     public GameObject itemPrefab { get; set; }
+    public bool isVirtual => m_isVirtual;
     
     Action<int, ListViewItem> m_onItemRefresh;//用于刷新item UI
     Action<int, bool> m_onItemValueChanged;//item是否选中的状态发生改变时调用
@@ -242,6 +243,7 @@ public class ListView : MonoBehaviour
     
     float GetContentLength()
     {
+        if (itemCount == 0) return 0;
         //计算所有item需要的长度
         if (m_flowType == EFlowType.Horizontal)
         {
