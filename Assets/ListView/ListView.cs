@@ -152,7 +152,10 @@ public class ListView : MonoBehaviour
         {
             ListViewItem item = m_itemList[i];
             if (item.isSelected)
+            {
                 item.isSelected = false;
+                OnValueChanged(item);
+            }
             m_onItemRefresh?.Invoke(i, item);
         }
     }
@@ -175,7 +178,10 @@ public class ListView : MonoBehaviour
     public void RemoveItem(ListViewItem item)
     {
         if (item.isSelected)
+        {
             item.isSelected = false;
+            OnValueChanged(item);
+        }
         m_pool.Put(item.gameObject);
         m_itemList.Remove(item);
         SetBoundsDirty();
@@ -192,6 +198,11 @@ public class ListView : MonoBehaviour
         if(beginIndex > endIndex) return;
         for (int i = beginIndex; i <= endIndex; i++)
             RemoveItem(beginIndex);
+    }
+
+    public void RemoveAllItem()
+    {
+        RemoveItem(0, itemCount - 1);
     }
 
     void SetBoundsDirty()
@@ -259,7 +270,8 @@ public class ListView : MonoBehaviour
 
     void OnScroll(Vector2 position)
     {
-        RenderVirtualItem(false);
+        if(m_isVirtual)
+            RenderVirtualItem(false);
     }
 
     void RenderVirtualItem(bool isForceRender)
@@ -361,8 +373,13 @@ public class ListView : MonoBehaviour
     {
         if (!m_isVirtual)
         {
+            int oldCount = itemCount;
             m_itemInfoList.Clear();
+            RemoveAllItem();
             m_isVirtual = true;
+
+            if (oldCount != 0)
+                itemCount = oldCount;
         }
     }
 

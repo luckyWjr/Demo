@@ -11,6 +11,7 @@ public class PanelController : MonoBehaviour
     [SerializeField] Button m_daojuButton;
     [SerializeField] Button m_addButton;
     [SerializeField] Button m_deleteButton;
+    [SerializeField] Button m_convertButton;
     [SerializeField] Text m_amountText;
 
     List<GoodsData> m_shenbingDataList;
@@ -79,6 +80,7 @@ public class PanelController : MonoBehaviour
         m_daojuButton.onClick.AddListener(OnDaojuClicked);
         m_addButton.onClick.AddListener(OnAddClicked);
         m_deleteButton.onClick.AddListener(OnDeleteClicked);
+        m_convertButton.onClick.AddListener(OnConvertClicked);
 
         isShowShenbingList = true;
         m_listView.Init(m_goodsItemPrefab, OnItemRefresh, OnItemValueChange, OnItemClick);
@@ -123,10 +125,15 @@ public class PanelController : MonoBehaviour
             m_listView.RemoveItem(m_listView.itemCount - 1);
         }
     }
+
+    void OnConvertClicked()
+    {
+        m_listView.SetVirtual();
+    }
     
     void OnItemRefresh(int index, ListViewItem item)
     {
-        Debug.Log("OnItemRefresh:"+index);
+        // Debug.Log("OnItemRefresh:"+index);
         GoodsItem goodsItem = item as GoodsItem;
         goodsItem.Init(currentList[index]);
     }
