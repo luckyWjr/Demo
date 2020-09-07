@@ -26,34 +26,32 @@ public class ListView : MonoBehaviour
         public bool isSelected;
     }
     
-    [SerializeField] bool m_isVirtual;
-    [SerializeField] ESelectType m_selectType;
-    [SerializeField] EFlowType m_flowType;
-    [SerializeField] int m_constraintCount;
-    [SerializeField] Vector2 m_itemSpace;
+    [SerializeField] bool m_isVirtual;//是否为虚列表
+    [SerializeField] ESelectType m_selectType;//选择类型
+    [SerializeField] EFlowType m_flowType;//滑动类型
+    [SerializeField] int m_constraintCount;//固定的行数或列数，若为0则根据窗口大小自动计算行列数
+    [SerializeField] Vector2 m_itemSpace;//item间距
     
     public GameObject itemPrefab { get; set; }
     
-    Action<int, ListViewItem> m_onItemRefresh;
-    Action<int, bool> m_onItemValueChanged;
-    Action<ListViewItem> m_onItemClicked;
+    Action<int, ListViewItem> m_onItemRefresh;//用于刷新item UI
+    Action<int, bool> m_onItemValueChanged;//item是否选中的状态发生改变时调用
+    Action<ListViewItem> m_onItemClicked;//item被点击时调用
     
-    int m_rowCount, m_columnCount;
-    Vector2 m_initialSize;
-    Vector2 m_itemSize;
+    int m_rowCount, m_columnCount;//上下滑动时，列数固定。左右滑动时，行数固定
+    Vector2 m_initialSize;//listview窗口大小，用于计算行列数
+    Vector2 m_itemSize;//item大小
     
     RectTransform m_rectTransform;
     ScrollRect m_scrollRect;
     GameObjectPool m_pool;
 
-    List<ItemInfo> m_itemInfoList;
+    List<ItemInfo> m_itemInfoList;//用做虚列表
+    int m_itemRealCount;//用做虚列表，真实的item数量
+    int m_startIndex;//用做虚列表，视图中左上角item的下标
+    
+    bool m_isBoundsDirty;
 
-    float m_scrollStep;
-    bool m_isBoundsDirty = false;
-
-    int m_startIndex;//虚拟列表，视图中左上角item的下标
-
-    int m_itemRealCount;
     public int itemCount
     {
         get => m_isVirtual ? m_itemRealCount : m_itemList.Count;
@@ -206,9 +204,7 @@ public class ListView : MonoBehaviour
             return;
         SetSize();
         for (int i = 0, count = itemCount; i < count; i++)
-        {
             m_itemList[i].transform.localPosition = CalculatePosition(i);
-        }
         
         m_isBoundsDirty = false;
     }
@@ -223,6 +219,7 @@ public class ListView : MonoBehaviour
         m_rectTransform.localPosition = Vector3.zero;
     }
     
+    //根据item下标计算所在位置
     Vector2 CalculatePosition(int index)
     {
         int row, column;
@@ -245,6 +242,7 @@ public class ListView : MonoBehaviour
     
     float GetContentLength()
     {
+        //计算所有item需要的长度
         if (m_flowType == EFlowType.Horizontal)
         {
             int columnCount = Mathf.CeilToInt((float)itemCount / m_rowCount);
@@ -265,35 +263,30 @@ public class ListView : MonoBehaviour
     void RenderVirtualItem(bool isForceRender)
     {
         if (m_flowType == EFlowType.Horizontal)
-        {
             ScrollHorizontal(isForceRender);
-        }
         else
-        {
             ScrollVertical(isForceRender);
-        }
     }
 
+    //isForceRender:是否强制更新所有item
     void ScrollVertical(bool isForceRender)
     {
         float currentY = m_rectTransform.localPosition.y;
-        // Debug.Log("currentY:"+currentY);
+        //上下滑动，根据listview的y值计算当前视图中第一个item的下标
         m_startIndex = GetCurrentIndex(currentY);
-        // Debug.Log("startIndex:"+startIndex);
+        //根据视图高度，item高度，间距的y，计算出结束行的下标
         float endY = -currentY - m_initialSize.y - m_itemSize.y - m_itemSpace.y;
-        // Debug.Log("endY:"+endY);
         int endIndex = GetCurrentIndex(-endY);
-        // Debug.Log("endIndex:"+endIndex);
+        
+        //渲染当前视图内需要显示的item
         for (int i = m_startIndex; i < itemCount && i < endIndex; i++)
         {
-            bool needRender = false;
-            // if(CalculatePosition(i).y < endY)
-            //     break;
+            bool needRender = false;//是否需要刷新item ui
             ItemInfo info = m_itemInfoList[i];
 
-            //scroll down
             if (info.item == null)
             {
+                //从要显示的item前后查找到不需要显示item，进行替换，并标记数据需要更新
                 for (int j = 0; j < m_startIndex; j++)
                 {
                     if (m_itemInfoList[j].item != null)
@@ -304,28 +297,30 @@ public class ListView : MonoBehaviour
                         break;
                     }
                 }
-            }
-            
-            if (info.item == null)
-            {
-                for (int j = endIndex; j < itemCount; j++)
+                
+                if (info.item == null)
                 {
-                    if (m_itemInfoList[j].item != null)
+                    for (int j = endIndex; j < itemCount; j++)
                     {
-                        info.item = m_itemInfoList[j].item;
-                        m_itemInfoList[j].item = null;
-                        needRender = true;
-                        break;
+                        if (m_itemInfoList[j].item != null)
+                        {
+                            info.item = m_itemInfoList[j].item;
+                            m_itemInfoList[j].item = null;
+                            needRender = true;
+                            break;
+                        }
                     }
                 }
             }
             
+            //前后找不到的话，添加新的item
             if (info.item == null)
             {
                 info.item = AddItem();
                 needRender = true;
             }
 
+            //更新位置，是否选中状态，以及数据
             if (isForceRender || needRender)
             {
                 info.item.transform.localPosition = CalculatePosition(i);
@@ -340,7 +335,7 @@ public class ListView : MonoBehaviour
         int startIndex = GetCurrentIndex(m_rectTransform.localPosition.x);
     }
 
-    //当前页面显示的item中，第一个item的下标
+    //根据listview的位置，计算该位置的行或列的第一个item的下标
     int GetCurrentIndex(float position)
     {
         if (m_flowType == EFlowType.Horizontal)
@@ -372,6 +367,7 @@ public class ListView : MonoBehaviour
         m_itemSize = itemPrefab.GetComponent<RectTransform>().rect.size;
         m_initialSize = m_rectTransform.parent.GetComponent<RectTransform>().rect.size;//Viewport Size
 
+        //计算行或列
         if (m_flowType == EFlowType.Horizontal)
         {
             m_rowCount = m_constraintCount;
@@ -400,12 +396,15 @@ public class ListView : MonoBehaviour
                 {
                     for (int i = 0; i < itemCount; i++)
                     {
+                        //找到对应项，设置为选中
                         if (m_itemInfoList[i].item == item)
                         {
                             m_itemInfoList[i].isSelected = true;
                             m_onItemValueChanged?.Invoke(i, true);
                             continue;
                         }
+                        
+                        //取消之前的选中状态
                         if (m_itemInfoList[i].isSelected)
                         {
                             m_itemInfoList[i].isSelected = false;
@@ -417,12 +416,13 @@ public class ListView : MonoBehaviour
                 }
                 else
                 {
+                    //找到对应项，设置为选中
                     for (int i = m_startIndex; i < itemCount; i++)
                     {
                         if (m_itemInfoList[i].item == item)
                         {
-                            m_itemInfoList[i].isSelected = false;
-                            m_onItemValueChanged?.Invoke(i, false);
+                            m_itemInfoList[i].isSelected = true;
+                            m_onItemValueChanged?.Invoke(i, true);
                             break;
                         }
                     }
@@ -430,11 +430,13 @@ public class ListView : MonoBehaviour
             }
             else
             {
+                //找到对应项，设置为未选中
                 for (int i = m_startIndex; i < itemCount; i++)
                 {
                     if (m_itemInfoList[i].item == item)
                     {
-                        m_onItemValueChanged?.Invoke(i, true);
+                        m_itemInfoList[i].isSelected = false;
+                        m_onItemValueChanged?.Invoke(i, false);
                         break;
                     }
                 }
@@ -448,8 +450,9 @@ public class ListView : MonoBehaviour
                 {
                     if (m_selectedItemList.Count > 0)
                     {
+                        //取消之前的选中状态
                         m_selectedItemList[0].isSelected = false;
-                        int lastSelectedIndex = m_selectedItemList.IndexOf(m_selectedItemList[0]);
+                        int lastSelectedIndex = m_itemList.IndexOf(m_selectedItemList[0]);
                         m_onItemValueChanged?.Invoke(lastSelectedIndex, false);
                         m_selectedItemList.Clear();
                     }
@@ -462,7 +465,7 @@ public class ListView : MonoBehaviour
             {
                 m_selectedItemList.Remove(item);
             }
-            int index = m_selectedItemList.IndexOf(item);
+            int index = m_itemList.IndexOf(item);
             m_onItemValueChanged?.Invoke(index, item.isSelected);
         }
     }
