@@ -48,7 +48,7 @@ public class ListView : MonoBehaviour
 
     List<ItemInfo> m_itemInfoList;//用做虚列表
     int m_itemRealCount;//用做虚列表，真实的item数量
-    int m_startIndex;//用做虚列表，视图中左上角item的下标
+    int m_startIndex, m_endIndex;//用做虚列表，视图中左上角item的下标，以及结束的下标
     
     bool m_isBoundsDirty;
 
@@ -262,24 +262,31 @@ public class ListView : MonoBehaviour
 
     void RenderVirtualItem(bool isForceRender)
     {
-        if (m_flowType == EFlowType.Horizontal)
-            ScrollHorizontal(isForceRender);
-        else
-            ScrollVertical(isForceRender);
+        ScrollAndRender(isForceRender);
     }
 
     //isForceRender:是否强制更新所有item
-    void ScrollVertical(bool isForceRender)
+    void ScrollAndRender(bool isForceRender)
     {
-        float currentY = m_rectTransform.localPosition.y;
-        //上下滑动，根据listview的y值计算当前视图中第一个item的下标
-        m_startIndex = GetCurrentIndex(currentY);
-        //根据视图高度，item高度，间距的y，计算出结束行的下标
-        float endY = -currentY - m_initialSize.y - m_itemSize.y - m_itemSpace.y;
-        int endIndex = GetCurrentIndex(-endY);
+        if (m_flowType == EFlowType.Horizontal)
+        {
+            float currentX = m_rectTransform.localPosition.x;// <0
+            m_startIndex = GetCurrentIndex(currentX);
+            float endX = currentX - m_initialSize.x - m_itemSize.x - m_itemSpace.x;
+            m_endIndex = GetCurrentIndex(endX);
+        }
+        else
+        {
+            float currentY = m_rectTransform.localPosition.y;// >0
+            //上下滑动，根据listview的y值计算当前视图中第一个item的下标
+            m_startIndex = GetCurrentIndex(currentY);
+            //根据视图高度，item高度，间距的y，计算出结束行的下标
+            float endY = currentY + m_initialSize.y + m_itemSize.y + m_itemSpace.y;
+            m_endIndex = GetCurrentIndex(endY);
+        }
         
         //渲染当前视图内需要显示的item
-        for (int i = m_startIndex; i < itemCount && i < endIndex; i++)
+        for (int i = m_startIndex; i < itemCount && i < m_endIndex; i++)
         {
             bool needRender = false;//是否需要刷新item ui
             ItemInfo info = m_itemInfoList[i];
@@ -300,7 +307,7 @@ public class ListView : MonoBehaviour
                 
                 if (info.item == null)
                 {
-                    for (int j = endIndex; j < itemCount; j++)
+                    for (int j = m_endIndex; j < itemCount; j++)
                     {
                         if (m_itemInfoList[j].item != null)
                         {
@@ -330,11 +337,6 @@ public class ListView : MonoBehaviour
         }
     }
     
-    void ScrollHorizontal(bool isForceRender)
-    {
-        int startIndex = GetCurrentIndex(m_rectTransform.localPosition.x);
-    }
-
     //根据listview的位置，计算该位置的行或列的第一个item的下标
     int GetCurrentIndex(float position)
     {
