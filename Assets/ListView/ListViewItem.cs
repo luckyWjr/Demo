@@ -42,6 +42,7 @@ public abstract class ListViewItem : MonoBehaviour
         m_rectTransform = GetComponent<RectTransform>();
         m_rectTransform.anchorMin = Vector2.up;
         m_rectTransform.anchorMax = Vector2.up;
+        m_rectTransform.pivot = new Vector2(0.5f, 0.5f);
     }
 
     public void Init(ListView.ESelectType type, Action<ListViewItem> onValueChanged, Action<ListViewItem> onClicked)
@@ -50,7 +51,7 @@ public abstract class ListViewItem : MonoBehaviour
         m_onValueChanged = onValueChanged;
         m_onClicked = onClicked;
     }
-    
+
     void OnClicked()
     {
         bool isValueChange = false;
