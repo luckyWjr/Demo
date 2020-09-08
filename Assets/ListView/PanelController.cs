@@ -84,6 +84,7 @@ public class PanelController : MonoBehaviour
 
         isShowShenbingList = true;
         m_listView.Init(m_goodsItemPrefab, OnItemRefresh, OnItemValueChange, OnItemClick);
+        m_listView.onSelectedItemCleared = OnListViewSelectedItemCleared;
         m_listView.itemCount = m_shenbingDataList.Count;
     }
 
@@ -145,9 +146,15 @@ public class PanelController : MonoBehaviour
     
     void OnItemValueChange(int index, bool isSelected)
     {
-        // Debug.Log($"OnItemValueChange:{index}  {isSelected}");
+        Debug.Log($"OnItemValueChange:{index}  {isSelected}");
         GoodsData data = currentList[index];
         m_amount = m_amount + (isSelected ? 1 : -1) * data.price;
+        m_amountText.text = $"总额：{m_amount}";
+    }
+
+    void OnListViewSelectedItemCleared()
+    {
+        m_amount = 0;
         m_amountText.text = $"总额：{m_amount}";
     }
 }

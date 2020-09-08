@@ -38,6 +38,7 @@ public class ListView : MonoBehaviour
     Action<int, ListViewItem> m_onItemRefresh;//用于刷新item UI
     Action<int, bool> m_onItemValueChanged;//item是否选中的状态发生改变时调用
     Action<ListViewItem> m_onItemClicked;//item被点击时调用
+    public Action onSelectedItemCleared;
     
     int m_rowCount, m_columnCount;//上下滑动时，列数固定。左右滑动时，行数固定
     Vector2 m_initialSize;//listview窗口大小，用于计算行列数
@@ -59,6 +60,7 @@ public class ListView : MonoBehaviour
         set
         {
             ResetPosition();
+            ClearAllSelectedItem();
             if (m_isVirtual)
             {
                 m_itemRealCount = value;
@@ -84,7 +86,6 @@ public class ListView : MonoBehaviour
                         }
                     }
                 }
-                RenderVirtualItem(true);
             }
             else
             {
@@ -96,9 +97,8 @@ public class ListView : MonoBehaviour
                 }
                 else
                     RemoveItem(value, oldCount - 1);
-
-                Refresh();
             }
+            Refresh();
         }
     }
 
@@ -148,16 +148,29 @@ public class ListView : MonoBehaviour
 
     public void Refresh()
     {
-        for (int i = 0, count = m_itemList.Count; i < count; i++)
+        if (m_isVirtual)
         {
-            ListViewItem item = m_itemList[i];
-            if (item.isSelected)
-            {
-                item.isSelected = false;
-                OnValueChanged(item);
-            }
-            m_onItemRefresh?.Invoke(i, item);
+            RenderVirtualItem(true);
         }
+        else
+        {
+            for (int i = 0, count = m_itemList.Count; i < count; i++)
+            {
+                ListViewItem item = m_itemList[i];
+                m_onItemRefresh?.Invoke(i, item);
+            }
+        }
+    }
+
+    public void ClearAllSelectedItem()
+    {
+        for (int i = 0, count = m_selectedItemList.Count; i < count; i++)
+        {
+            m_selectedItemList[i].isSelected = false;
+            // OnValueChanged(item); 由于原始数据可能已经变化了，所以使用onSelectedItemCleared代替
+        }
+        m_selectedItemList.Clear();
+        onSelectedItemCleared?.Invoke();
     }
     
     public ListViewItem AddItem()
