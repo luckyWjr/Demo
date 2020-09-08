@@ -241,6 +241,8 @@ public class ListView : MonoBehaviour
 
     void ResetPosition()
     {
+        m_startIndex = 0;
+        m_endIndex = 0;
         m_rectTransform.localPosition = Vector3.zero;
     }
     
@@ -295,6 +297,7 @@ public class ListView : MonoBehaviour
     //isForceRender:是否强制更新所有item
     void ScrollAndRender(bool isForceRender)
     {
+        int oldStartIndex = m_startIndex, oldEndIndex = m_endIndex;
         if (m_flowType == EFlowType.Horizontal)
         {
             float currentX = m_rectTransform.localPosition.x;// <0
@@ -311,6 +314,9 @@ public class ListView : MonoBehaviour
             float endY = currentY + m_initialSize.y + m_itemSize.y + m_itemSpace.y;
             m_endIndex = GetCurrentIndex(endY);
         }
+        
+        if(oldStartIndex == m_startIndex && oldEndIndex == m_endIndex)
+            return;
         
         //渲染当前视图内需要显示的item
         for (int i = m_startIndex; i < itemCount && i < m_endIndex; i++)
