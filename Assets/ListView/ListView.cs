@@ -405,7 +405,7 @@ public class ListView : MonoBehaviour
         if (m_flowType == EFlowType.Horizontal)
         {
             m_rowCount = m_constraintCount;
-            if (m_rowCount == 0)
+            if (m_rowCount <= 0)
                 m_rowCount = Mathf.FloorToInt((m_initialSize.y + m_itemSpace.y) / (m_itemSize.y + m_itemSpace.y));
             if (m_rowCount == 0)
                 m_rowCount = 1;
@@ -413,7 +413,7 @@ public class ListView : MonoBehaviour
         else
         {
             m_columnCount = m_constraintCount;
-            if (m_columnCount == 0)
+            if (m_columnCount <= 0)
                 m_columnCount = Mathf.FloorToInt((m_initialSize.x + m_itemSpace.x) / (m_itemSize.x + m_itemSpace.x));
             if (m_columnCount == 0)
                 m_columnCount = 1;
