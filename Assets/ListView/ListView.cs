@@ -333,8 +333,19 @@ public class ListView : MonoBehaviour
 
             if (info.item == null)
             {
-                //从要显示的item前后查找到不需要显示item，进行替换，并标记数据需要更新
-                for (int j = 0; j < m_startIndex; j++)
+                int j, jEnd;
+                if (oldStartIndex < m_startIndex || oldEndIndex < m_endIndex)
+                {
+                    //说明是往下或者往右滚动，即要从前面找复用的Item
+                    j = 0;
+                    jEnd = m_startIndex;
+                }
+                else
+                {
+                    j = m_endIndex;
+                    jEnd = itemCount;
+                }
+                for (;j < jEnd; j++)
                 {
                     if (m_itemInfoList[j].item != null)
                     {
@@ -342,20 +353,6 @@ public class ListView : MonoBehaviour
                         m_itemInfoList[j].item = null;
                         needRender = true;
                         break;
-                    }
-                }
-                
-                if (info.item == null)
-                {
-                    for (int j = m_endIndex; j < itemCount; j++)
-                    {
-                        if (m_itemInfoList[j].item != null)
-                        {
-                            info.item = m_itemInfoList[j].item;
-                            m_itemInfoList[j].item = null;
-                            needRender = true;
-                            break;
-                        }
                     }
                 }
             }
