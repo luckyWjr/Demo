@@ -82,7 +82,6 @@ public class ListView : MonoBehaviour
                         {
                             RemoveItem(m_itemInfoList[i].item);
                             m_itemInfoList[i].item = null;
-                            m_itemInfoList[i].isSelected = false;
                         }
                     }
                 }
@@ -164,12 +163,20 @@ public class ListView : MonoBehaviour
 
     public void ClearAllSelectedItem()
     {
-        for (int i = 0, count = m_selectedItemList.Count; i < count; i++)
+        if (m_isVirtual)
         {
-            m_selectedItemList[i].isSelected = false;
-            // OnValueChanged(item); 由于原始数据可能已经变化了，所以使用onSelectedItemCleared代替
+            for (int i = m_startIndex; i < itemCount; i++)
+                m_itemInfoList[i].isSelected = false;
         }
-        m_selectedItemList.Clear();
+        else
+        {
+            for (int i = 0, count = m_selectedItemList.Count; i < count; i++)
+            {
+                m_selectedItemList[i].isSelected = false;
+                // OnValueChanged(item); 由于原始数据可能已经变化了，所以使用onSelectedItemCleared代替
+            }
+            m_selectedItemList.Clear();
+        }
         onSelectedItemCleared?.Invoke();
     }
     
