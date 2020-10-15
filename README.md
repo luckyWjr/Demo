@@ -9,3 +9,4 @@
 6. TrackMissiles：追踪导弹Demo，博客链接 https://blog.csdn.net/wangjiangrong/article/details/102627877
 7. Graphic：UGUI绘制三角形，四边形，圆环Demo，博客链接 https://blog.csdn.net/wangjiangrong/article/details/107918646
 8. ListView：UGUI滚动选择列表，博客链接 https://blog.csdn.net/wangjiangrong/article/details/108451436
+9. Cinemachine：Cinemachine相关功能，博客链接 https://blog.csdn.net/wangjiangrong/article/details/108726387
