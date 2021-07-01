@@ -869,12 +869,14 @@ MonoBehaviour:
   gridPrefab: {fileID: 781834578}
   gridSize: 100
   gridParent: {fileID: 566622607}
-  SetPlayerButton: {fileID: 228672872}
-  SetDestinationButton: {fileID: 2010375818}
-  SetObstacleButton: {fileID: 331248904}
-  ClearMapButton: {fileID: 1100974611}
-  AStarButton: {fileID: 170830451}
-  HintText: {fileID: 1600481680}
+  setPlayerButton: {fileID: 228672872}
+  setDestinationButton: {fileID: 2010375818}
+  setObstacleButton: {fileID: 331248904}
+  resetMapButton: {fileID: 1100974611}
+  aStarButton: {fileID: 170830451}
+  hintText: {fileID: 1600481680}
+  isShowGridHint: 1
+  isStepOneByOne: 1
 --- !u!114 &566622609
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1459,7 +1461,7 @@ GameObject:
   - component: {fileID: 1100974612}
   - component: {fileID: 1100974611}
   m_Layer: 5
-  m_Name: ClearMapButton
+  m_Name: ResetMapButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

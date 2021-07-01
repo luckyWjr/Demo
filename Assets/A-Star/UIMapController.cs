@@ -2,9 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+//两个Int组成的结构图，用作网格下标
 public struct Int2
 {
     public int x;
@@ -18,7 +18,7 @@ public struct Int2
         return $"x:{x.ToString()}   y:{y.ToString()}";
     }
 
-    //https://www.cnblogs.com/xiaochen-vip8/p/5506478.html
+    //为什么要重写GetHashCode方法，阅读： https://www.cnblogs.com/xiaochen-vip8/p/5506478.html
     public override int GetHashCode() {
         return x ^ (y * 256);
     }
@@ -29,6 +29,7 @@ public struct Int2
         Int2 int2 = (Int2)obj;
         return x == int2.x && y == int2.y;
     }
+
     public static bool operator ==(Int2 a, Int2 b) {
         return a.Equals(b);
     }
@@ -43,19 +44,21 @@ public class UIMapController : MonoBehaviour
     public UIGridController gridPrefab;
     public int gridSize;
     public Transform gridParent;
-    public Button SetPlayerButton;
-    public Button SetDestinationButton;
-    public Button SetObstacleButton;
-    public Button ClearMapButton;
-    public Button AStarButton;
-    public Text HintText;
+    public Button setPlayerButton;
+    public Button setDestinationButton;
+    public Button setObstacleButton;
+    public Button resetMapButton;
+    public Button aStarButton;
+    public Text hintText;
+    public bool isShowGridHint;
+    public bool isStepOneByOne;
 
     UIGridController[,] m_map;
     Int2 m_mapSize;
     GridState m_settingState;
     Text SetObstacleButtonText;
-    UIGridController m_player, m_destination;
-    Dictionary<Int2, UIGridController> m_obstacleDic = new Dictionary<Int2, UIGridController>();
+    UIGridController m_player, m_destination;//玩家与目的地
+    Dictionary<Int2, UIGridController> m_obstacleDic = new Dictionary<Int2, UIGridController>();//障碍物
 
     AStar m_aStar;
     IEnumerator m_aStarProcess;
@@ -63,16 +66,17 @@ public class UIMapController : MonoBehaviour
     void Start()
     {
         InitMap();
-        SetPlayerButton.onClick.AddListener(OnSetPlayerButtonClicked);
-        SetDestinationButton.onClick.AddListener(OnSetDestinationButtonClicked);
-        SetObstacleButton.onClick.AddListener(OnSetObstacleButtonClicked);
-        ClearMapButton.onClick.AddListener(OnClearMapButtonClicked);
-        AStarButton.onClick.AddListener(OnAStarButtonClicked);
+        setPlayerButton.onClick.AddListener(OnSetPlayerButtonClicked);
+        setDestinationButton.onClick.AddListener(OnSetDestinationButtonClicked);
+        setObstacleButton.onClick.AddListener(OnSetObstacleButtonClicked);
+        resetMapButton.onClick.AddListener(OnResetMapButtonClicked);
+        aStarButton.onClick.AddListener(OnAStarButtonClicked);
 
         m_settingState = GridState.Default;
         m_aStar = new AStar();
     }
 
+    //初始化网格
     void InitMap() {
         if(m_map != null)
             return;
@@ -84,15 +88,17 @@ public class UIMapController : MonoBehaviour
         for(int i = 0; i < m_mapSize.x; i++) {
             for(int j = 0; j < m_mapSize.y; j++) {
                 UIGridController grid = Instantiate(gridPrefab, gridParent);
+                grid.rectTransform.sizeDelta = new Vector2(gridSize, gridSize);
                 grid.rectTransform.anchoredPosition = new Vector2(gridSize * i + offset.x, gridSize * j + offset.y);
                 grid.rectTransform.localScale = Vector3.one;
                 grid.gameObject.SetActive(true);
-                grid.Init(new Int2(i, j), OnGridClicked);
+                grid.Init(new Int2(i, j), isShowGridHint, OnGridClicked);
                 m_map[i, j] = grid;
             }
         }
     }
 
+    //单击某个网格，设置对应状态
     void OnGridClicked(UIGridController grid) {
         if(m_settingState == GridState.Player) {
             grid.state = GridState.Player;
@@ -138,7 +144,7 @@ public class UIMapController : MonoBehaviour
 
     void OnSetObstacleButtonClicked() {
         if(SetObstacleButtonText == null)
-            SetObstacleButtonText = SetObstacleButton.GetComponentInChildren<Text>();
+            SetObstacleButtonText = setObstacleButton.GetComponentInChildren<Text>();
 
         if(m_settingState == GridState.Obstacle) {
             m_settingState = GridState.Default;
@@ -151,27 +157,43 @@ public class UIMapController : MonoBehaviour
         }
     }
 
-    void OnClearMapButtonClicked() {
+    void OnResetMapButtonClicked() {
         if(m_settingState == GridState.Obstacle)
             return;
         ResetMap();
     }
 
+    //开始寻路，分一步一步寻路和一次性完成寻路
     void OnAStarButtonClicked() {
         if(!m_aStar.isInit) {
             m_aStar.Init(m_map, m_mapSize, m_player.position, m_destination.position);
             m_aStarProcess = m_aStar.Start();
         }
-        if(!m_aStarProcess.MoveNext()) {
+        if(isStepOneByOne) {
+            if(!m_aStarProcess.MoveNext()) {
+                SetHint("寻路完成");
+            }
+        }
+        else {
+            while(m_aStarProcess.MoveNext())
+                ;
             SetHint("寻路完成");
         }
     }
 
+    //右上角提示语
     void SetHint(string hint = null) {
-        HintText.text = hint;
+        hintText.text = hint;
     }
 
     void ResetMap() {
+        //先只清空寻路
+        if(m_aStar.isInit) {
+            m_aStar.Clear();
+            return;
+        }
+
+        //再次点击清空地图设置
         if(m_player != null)
             m_player.state = GridState.Default;
         m_player = null;
@@ -183,6 +205,7 @@ public class UIMapController : MonoBehaviour
         foreach(var grid in m_obstacleDic.Values)
             grid.state = GridState.Default;
         m_obstacleDic.Clear();
+        
     }
 
     void ClearMap() {
