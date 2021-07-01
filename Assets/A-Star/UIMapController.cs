@@ -17,71 +17,48 @@ public struct Int2
     public override string ToString() {
         return $"x:{x.ToString()}   y:{y.ToString()}";
     }
-}
 
-public enum GridState
-{
-    Default,
-    Player,
-    Obstacle,
-    Destination,
-    Path,
-    Calculate
-}
-
-public class Grid
-{
-    public static Color[] gridColors = new Color[6] { Color.white , Color.green, Color.gray, Color.red, Color.yellow, Color.blue };
-    
-    public Image image;
-    
-    GridState m_state;
-    public GridState state {
-        get => m_state;
-        set {
-            m_state = value;
-            image.color = gridColors[(int)m_state];
-        }
+    //https://www.cnblogs.com/xiaochen-vip8/p/5506478.html
+    public override int GetHashCode() {
+        return x ^ (y * 256);
     }
 
-    Int2 m_position;
-    Action<Grid> onClickCallback;
-
-    public Grid(Image image, Int2 pos, Action<Grid> callback = null) {
-        this.image = image;
-        m_position = pos;
-        onClickCallback = callback;
-        state = GridState.Default;
-        this.image.GetComponent<Button>().onClick.AddListener(OnClicked);
+    public override bool Equals(object obj) {
+        if(obj.GetType() != typeof(Int2))
+            return false;
+        Int2 int2 = (Int2)obj;
+        return x == int2.x && y == int2.y;
+    }
+    public static bool operator ==(Int2 a, Int2 b) {
+        return a.Equals(b);
     }
 
-    void OnClicked() {
-        onClickCallback?.Invoke(this);
-    }
-
-    public void Clear() {
-        GameObject.Destroy(image);
-        image = null;
+    public static bool operator !=(Int2 a, Int2 b) {
+        return !a.Equals(b);
     }
 }
 
 public class UIMapController : MonoBehaviour
 {
-    public Image gridPrefab;
+    public UIGridController gridPrefab;
     public int gridSize;
     public Transform gridParent;
     public Button SetPlayerButton;
     public Button SetDestinationButton;
     public Button SetObstacleButton;
     public Button ClearMapButton;
+    public Button AStarButton;
     public Text HintText;
 
-    Grid[,] m_map;
+    UIGridController[,] m_map;
     Int2 m_mapSize;
     GridState m_settingState;
     Text SetObstacleButtonText;
-    Grid m_player, m_destination;
-    List<Grid> m_obstacleList = new List<Grid>();
+    UIGridController m_player, m_destination;
+    Dictionary<Int2, UIGridController> m_obstacleDic = new Dictionary<Int2, UIGridController>();
+
+    AStar m_aStar;
+    IEnumerator m_aStarProcess;
 
     void Start()
     {
@@ -90,8 +67,10 @@ public class UIMapController : MonoBehaviour
         SetDestinationButton.onClick.AddListener(OnSetDestinationButtonClicked);
         SetObstacleButton.onClick.AddListener(OnSetObstacleButtonClicked);
         ClearMapButton.onClick.AddListener(OnClearMapButtonClicked);
+        AStarButton.onClick.AddListener(OnAStarButtonClicked);
 
         m_settingState = GridState.Default;
+        m_aStar = new AStar();
     }
 
     void InitMap() {
@@ -100,20 +79,21 @@ public class UIMapController : MonoBehaviour
 
         Int2 offset = new Int2(50 + gridSize / 2, 50 + gridSize / 2);
         m_mapSize = new Int2((Screen.width - 100) / gridSize, (Screen.height - 200) / gridSize);
-        m_map = new Grid[m_mapSize.x, m_mapSize.y];
+        m_map = new UIGridController[m_mapSize.x, m_mapSize.y];
 
         for(int i = 0; i < m_mapSize.x; i++) {
             for(int j = 0; j < m_mapSize.y; j++) {
-                Image image = Instantiate(gridPrefab, gridParent);
-                image.rectTransform.anchoredPosition = new Vector2(gridSize * i + offset.x, gridSize * j + offset.y);
-                image.rectTransform.localScale = Vector3.one;
-                image.gameObject.SetActive(true);
-                m_map[i, j] = new Grid(image, new Int2(i, j), OnGridClicked);
+                UIGridController grid = Instantiate(gridPrefab, gridParent);
+                grid.rectTransform.anchoredPosition = new Vector2(gridSize * i + offset.x, gridSize * j + offset.y);
+                grid.rectTransform.localScale = Vector3.one;
+                grid.gameObject.SetActive(true);
+                grid.Init(new Int2(i, j), OnGridClicked);
+                m_map[i, j] = grid;
             }
         }
     }
 
-    void OnGridClicked(Grid grid) {
+    void OnGridClicked(UIGridController grid) {
         if(m_settingState == GridState.Player) {
             grid.state = GridState.Player;
             if(m_player != null)
@@ -133,11 +113,11 @@ public class UIMapController : MonoBehaviour
         else if(m_settingState == GridState.Obstacle) {
             if(grid.state == GridState.Default) {
                 grid.state = GridState.Obstacle;
-                m_obstacleList.Add(grid);
+                m_obstacleDic[grid.position] = grid;
             }
             else if(grid.state == GridState.Obstacle) {
                 grid.state = GridState.Default;
-                m_obstacleList.Remove(grid);
+                m_obstacleDic.Remove(grid.position);
             }
         }
     }
@@ -177,6 +157,16 @@ public class UIMapController : MonoBehaviour
         ResetMap();
     }
 
+    void OnAStarButtonClicked() {
+        if(!m_aStar.isInit) {
+            m_aStar.Init(m_map, m_mapSize, m_player.position, m_destination.position);
+            m_aStarProcess = m_aStar.Start();
+        }
+        if(!m_aStarProcess.MoveNext()) {
+            SetHint("Ñ°Â·Íê³É");
+        }
+    }
+
     void SetHint(string hint = null) {
         HintText.text = hint;
     }
@@ -190,9 +180,9 @@ public class UIMapController : MonoBehaviour
             m_destination.state = GridState.Default;
         m_destination = null;
 
-        foreach(var grid in m_obstacleList)
+        foreach(var grid in m_obstacleDic.Values)
             grid.state = GridState.Default;
-        m_obstacleList.Clear();
+        m_obstacleDic.Clear();
     }
 
     void ClearMap() {
