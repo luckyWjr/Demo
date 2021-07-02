@@ -90,7 +90,8 @@ public class UIGridController : MonoBehaviour {
         gText.text = "";
         hText.text = "";
         fText.text = "";
-        state = GridState.Default;
+        if(state == GridState.InOpen || state == GridState.InClose || state == GridState.Path)
+            state = GridState.Default;
         Arrow.SetActive(false);
     }
 

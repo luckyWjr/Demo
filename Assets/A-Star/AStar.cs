@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public enum EvaluationFunctionType {
+    Euclidean,
+    Manhattan,
+}
 
 public class Node
 {
@@ -52,15 +56,17 @@ public class AStar {
     UIGridController[,] m_map;
     Int2 m_mapSize;
     Int2 m_player, m_destination;
+    EvaluationFunctionType m_evaluationFunctionType;//估价方式
 
     Dictionary<Int2, Node> m_openDic = new Dictionary<Int2, Node>();//准备处理的网格
     Dictionary<Int2, Node> m_closeDic = new Dictionary<Int2, Node>();//完成处理的网格
 
-    public void Init(UIGridController[,] map, Int2 mapSize, Int2 player, Int2 destination) {
+    public void Init(UIGridController[,] map, Int2 mapSize, Int2 player, Int2 destination, EvaluationFunctionType type = EvaluationFunctionType.Manhattan) {
         m_map = map;
         m_mapSize = mapSize;
         m_player = player;
         m_destination = destination;
+        m_evaluationFunctionType = type;
 
         m_openDic.Clear();
         m_closeDic.Clear();
@@ -164,12 +170,20 @@ public class AStar {
 
     //获取估价距离
     int GetH(Int2 position) {
-        return GetManhattanDistance(position);
+        if(m_evaluationFunctionType == EvaluationFunctionType.Manhattan)
+            return GetManhattanDistance(position);
+        else
+            return GetSqrEuclideanDistance(position);
     }
 
     //获取曼哈顿距离
     int GetManhattanDistance(Int2 position) {
         return Mathf.Abs(m_destination.x - position.x) * FACTOR + Mathf.Abs(m_destination.y - position.y) * FACTOR;
+    }
+
+    //获取欧几里得距离的平方
+    int GetSqrEuclideanDistance(Int2 position) {
+        return (int)Mathf.Pow((m_destination.x - position.x) * FACTOR, 2) + (int)Mathf.Pow((m_destination.y - position.y) * FACTOR, 2);
     }
 
     public void Clear() {

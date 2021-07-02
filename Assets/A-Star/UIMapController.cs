@@ -50,6 +50,7 @@ public class UIMapController : MonoBehaviour
     public Button resetMapButton;
     public Button aStarButton;
     public Text hintText;
+    public EvaluationFunctionType evaluationFunctionType;
     public bool isShowGridHint;
     public bool isStepOneByOne;
 
@@ -166,7 +167,7 @@ public class UIMapController : MonoBehaviour
     //开始寻路，分一步一步寻路和一次性完成寻路
     void OnAStarButtonClicked() {
         if(!m_aStar.isInit) {
-            m_aStar.Init(m_map, m_mapSize, m_player.position, m_destination.position);
+            m_aStar.Init(m_map, m_mapSize, m_player.position, m_destination.position, evaluationFunctionType);
             m_aStarProcess = m_aStar.Start();
         }
         if(isStepOneByOne) {
