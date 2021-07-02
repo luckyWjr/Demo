@@ -875,7 +875,7 @@ MonoBehaviour:
   resetMapButton: {fileID: 1100974611}
   aStarButton: {fileID: 170830451}
   hintText: {fileID: 1600481680}
-  evaluationFunctionType: 0
+  evaluationFunctionType: 2
   isShowGridHint: 1
   isStepOneByOne: 1
 --- !u!114 &566622609

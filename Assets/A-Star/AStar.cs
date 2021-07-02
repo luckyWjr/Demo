@@ -6,6 +6,7 @@ using UnityEngine;
 public enum EvaluationFunctionType {
     Euclidean,
     Manhattan,
+    Diagonal,
 }
 
 public class Node
@@ -53,15 +54,17 @@ public class AStar {
     bool m_isInit = false;
     public bool isInit => m_isInit;
 
-    UIGridController[,] m_map;
+    UIGridController[,] m_map;//地图数据
     Int2 m_mapSize;
-    Int2 m_player, m_destination;
+    Int2 m_player, m_destination;//起始点和结束点坐标
     EvaluationFunctionType m_evaluationFunctionType;//估价方式
 
     Dictionary<Int2, Node> m_openDic = new Dictionary<Int2, Node>();//准备处理的网格
     Dictionary<Int2, Node> m_closeDic = new Dictionary<Int2, Node>();//完成处理的网格
 
-    public void Init(UIGridController[,] map, Int2 mapSize, Int2 player, Int2 destination, EvaluationFunctionType type = EvaluationFunctionType.Manhattan) {
+    Node m_destinationNode;
+
+    public void Init(UIGridController[,] map, Int2 mapSize, Int2 player, Int2 destination, EvaluationFunctionType type = EvaluationFunctionType.Diagonal) {
         m_map = map;
         m_mapSize = mapSize;
         m_player = player;
@@ -71,6 +74,8 @@ public class AStar {
         m_openDic.Clear();
         m_closeDic.Clear();
 
+        m_destinationNode = null;
+
         //将起始点加入open中
         AddNodeInOpenQueue(new Node(m_player, null, 0, 0));
         m_isInit = true;
@@ -78,24 +83,23 @@ public class AStar {
 
     //计算寻路
     public IEnumerator Start() {
-        while(m_openDic.Count > 0) {
+        while(m_openDic.Count > 0 && m_destinationNode == null) {
             //按照f的值升序排列
             m_openDic = m_openDic.OrderBy(kv => kv.Value.f).ToDictionary(p => p.Key, o => o.Value);
             //提取排序后的第一个节点
             Node node = m_openDic.First().Value;
             //因为使用的不是Queue，因此要从open中手动删除该节点
             m_openDic.Remove(node.position);
-            //如果该节点是目的地点，说明寻路成功
-            if(node.position == m_destination) {
-                ShowPath(node);
-                yield break;
-            }
             //处理该节点相邻的节点
             OperateNeighborNode(node);
             //处理完后将该节点加入close中
             AddNodeInCloseDic(node);
             yield return null;
         }
+        if(m_destinationNode == null)
+            Debug.LogError("找不到可用路径");
+        else
+            ShowPath(m_destinationNode);
     }
 
     //处理相邻的节点
@@ -139,7 +143,11 @@ public class AStar {
         else {
             //生成新的节点并加入到open中
             Node node = new Node(position, parentNode, nodeG, GetH(position));
-            AddNodeInOpenQueue(node);
+            //如果周边有一个是终点，那么说明已经找到了。
+            if(position == m_destination)
+                m_destinationNode = node;
+            else
+                AddNodeInOpenQueue(node);
         }
     }
 
@@ -170,13 +178,23 @@ public class AStar {
 
     //获取估价距离
     int GetH(Int2 position) {
-        //if(m_evaluationFunctionType == EvaluationFunctionType.Manhattan)
+        if(m_evaluationFunctionType == EvaluationFunctionType.Manhattan)
             return GetManhattanDistance(position);
-        //else
-        //    return GetEuclideanDistance(position);
+        else if(m_evaluationFunctionType == EvaluationFunctionType.Diagonal)
+            return GetDiagonalDistance(position);
+        else
+            return Mathf.CeilToInt(GetEuclideanDistance(position));
     }
 
     //获取曼哈顿距离
+    int GetDiagonalDistance(Int2 position) {
+        int x = Mathf.Abs(m_destination.x - position.x);
+        int y = Mathf.Abs(m_destination.y - position.y);
+        int min = Mathf.Min(x, y);
+        return min * FACTOR_DIAGONAL + Mathf.Abs(x - y) * FACTOR;
+    }
+
+    //获取对角线距离
     int GetManhattanDistance(Int2 position) {
         return Mathf.Abs(m_destination.x - position.x) * FACTOR + Mathf.Abs(m_destination.y - position.y) * FACTOR;
     }
@@ -196,6 +214,8 @@ public class AStar {
             m_map[pos.x, pos.y].ClearAStarHint();
         }
         m_closeDic.Clear();
+
+        m_destinationNode = null;
 
         m_isInit = false;
     }
