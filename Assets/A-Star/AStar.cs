@@ -170,10 +170,10 @@ public class AStar {
 
     //获取估价距离
     int GetH(Int2 position) {
-        if(m_evaluationFunctionType == EvaluationFunctionType.Manhattan)
+        //if(m_evaluationFunctionType == EvaluationFunctionType.Manhattan)
             return GetManhattanDistance(position);
-        else
-            return GetSqrEuclideanDistance(position);
+        //else
+        //    return GetEuclideanDistance(position);
     }
 
     //获取曼哈顿距离
@@ -181,9 +181,9 @@ public class AStar {
         return Mathf.Abs(m_destination.x - position.x) * FACTOR + Mathf.Abs(m_destination.y - position.y) * FACTOR;
     }
 
-    //获取欧几里得距离的平方
-    int GetSqrEuclideanDistance(Int2 position) {
-        return (int)Mathf.Pow((m_destination.x - position.x) * FACTOR, 2) + (int)Mathf.Pow((m_destination.y - position.y) * FACTOR, 2);
+    //获取欧几里得距离,测试下来并不合适
+    float GetEuclideanDistance(Int2 position) {
+        return Mathf.Sqrt(Mathf.Pow((m_destination.x - position.x) * FACTOR, 2) + Mathf.Pow((m_destination.y - position.y) * FACTOR, 2));
     }
 
     public void Clear() {
