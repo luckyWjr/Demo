@@ -84,8 +84,8 @@ public class AStar {
     //计算寻路
     public IEnumerator Start() {
         while(m_openDic.Count > 0 && m_destinationNode == null) {
-            //按照f的值升序排列
-            m_openDic = m_openDic.OrderBy(kv => kv.Value.f).ToDictionary(p => p.Key, o => o.Value);
+            //先按照f的值升序排列，当f值相等时再按照h的值升序排列
+            m_openDic = m_openDic.OrderBy(kv => kv.Value.f).ThenBy(kv => kv.Value.h).ToDictionary(p => p.Key, o => o.Value);
             //提取排序后的第一个节点
             Node node = m_openDic.First().Value;
             //因为使用的不是Queue，因此要从open中手动删除该节点
